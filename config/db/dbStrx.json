@@ -1,0 +1,32 @@
+
+
+
+{
+    "username":"user-name",
+
+    "phoneNumber":"phone-number",
+
+    "address":"address",
+
+    "email":"email",
+
+    "password":"password",
+    "Orders":[
+        {   
+            "id":"id",
+
+           "receiverName":"receiver",
+
+           "destinationAddress":"destinationAddress",
+
+           "pickUpAddress": "pickUpAddress",
+
+           "receiverPhoneNumber":"receiverPhoneNumber",
+           "date":"db.Timestamp.fromDate(new Date(Date.now))"
+
+        }
+    ]
+
+
+
+}
