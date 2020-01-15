@@ -1,5 +1,5 @@
 const  router = require('express').Router();
-const db = require('../config/db/db.js');
+const db = require('../config/db/db2');
 const bodyParser= require('body-parser');
 
 
