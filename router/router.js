@@ -381,7 +381,7 @@ router.post('/new_user',jsonParser,(req,res)=>{
                                                      if(err){
                                                 console.log(err)
                                          }
-                                         message="ORDER ADDED"
+                                         message="USER ADDED"
                                 res.status(200).json({message, valid:true})
                             });
                             
