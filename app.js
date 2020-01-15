@@ -8,7 +8,7 @@ const app = express();
 
 
 
-app.use(express.static('public'));
+app.use(express.static('dist'));
 app.use(cookieSession({
     name:"userSession",
     maxAge:60*60*1000,
@@ -22,7 +22,7 @@ app.use(router);
 
 
 
-app.listen(3000, ()=>{console.log('NOW LISTENING TO HUCKSAPP!!!!!!')})
+app.listen(process.env.PORT || 3000, ()=>{console.log('NOW LISTENING TO HUCKSAPP!!!!!!')})
 
 
 
