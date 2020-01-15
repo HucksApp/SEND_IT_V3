@@ -4,6 +4,7 @@ const btnOne = document.querySelector('.update-location');
 const btnTwo = document.querySelector('.status');
 const sub_destn= document.querySelector('.sub_destn');
 const sub_status= document.querySelector('.sub_status');
+const logout = document.getElementById('logout');
 
 
 
@@ -61,7 +62,7 @@ sub_destn.addEventListener('click',(e)=>{
 
 
     fetch('/update_location',{
-                method:'POST',
+                method:'PUT',
                 headers:{
                     "Content-Type":"application/json"
                 },
@@ -111,7 +112,7 @@ sub_status.addEventListener('click',(e)=>{
 
 
     fetch('/update_status',{
-                method:'POST',
+                method:'PUT',
                 headers:{
                     "Content-Type":"application/json"
                 },
@@ -132,6 +133,30 @@ sub_status.addEventListener('click',(e)=>{
   
 
 });
+
+
+
+logout.addEventListener('click',(e)=>{
+    e.preventDefault();
+    const chk= window.confirm('ARE YOU SURE ? .YOU WANT TO LOG OUT');
+    if(chk == false){
+        return
+    }else if (chk == true){
+
+
+        fetch('/logout').then((res)=>{
+        return res.json();
+    }).then((message)=>{
+        console.log(message.message);
+        window.location.replace('./index.html')
+
+    })
+
+    }
+
+    
+
+})
 
 
 

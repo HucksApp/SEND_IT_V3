@@ -1,33 +1,14 @@
 
+
+
+        window.addEventListener('load',()=>{
+
 const formOne = document.querySelector('form.create-order');
 const formTwo = document.querySelector('form.edit-destination');
 const btnOne = document.getElementById('btn-1');
 const btnTwo = document.getElementById('btn-2');
-const deletebtns= document.getElementsByClassName('delete');
-const idCount = document.querySelectorAll('.table-data p.id');
-
-
-[...deletebtns].forEach((deletebtn)=>{
-    deletebtn.addEventListener('click',(e)=>{
-
-    const del = {del: e.target.classList.value.replace(/delete /g, '')}
-
-
-
-        fetch('/delete_order',{
-                        method:"POST",
-                        headers:{
-                            "Content-Type":"application/json"
-                        },
-                        body:JSON.stringify(del)
-        }).then((response)=>{
-            console.log(response)
-        });
-    e.target.parentNode.parentNode.removeChild(e.target.parentNode);
-    
-    })
-});
-
+const idCount = document.querySelectorAll('.table-data p.id a.id-ach');
+const logout = document.getElementById('logout');
 
 
 
@@ -56,31 +37,39 @@ btnTwo.addEventListener('click',(e)=>{
     });
 
 
-/*
 
-if (idCount){
-    [...idCount].forEach((idC)=>{
-        idC.addEventListener('click',(e)=>{
-            fetch('/map',{
-                method:"POST",
-                headers:{
-                        "Content-Type":"application/json"
-                },
-                body:JSON.stringify({va: e.target.textContent})
-            }).then((result)=>{
-                console.log(result);
-            })
-        });
-    });
-};
 
-*/
+    logout.addEventListener('click',(e)=>{
+        e.preventDefault();
+        const chk= window.confirm('ARE YOU SURE ? .YOU WANT TO LOG OUT');
+        if(chk == false){
+            return
+        }else if (chk == true){
+
+
+            fetch('/logout').then((res)=>{
+            return res.json();
+        }).then((message)=>{
+            console.log(message.message);
+            window.location.replace('./index.html')
+
+        })
+
+        }
+
+        
+
+    })
+
+
 
 
     formOne.addEventListener('submit',(e)=>{
         e.preventDefault();
+        const idCount = document.querySelectorAll('.table-data p.id a.id-ach');
         let id 
-        if([...idCount][idCount.length -1]!= undefined){
+        console.log([...idCount][idCount.length -1])
+        if([...idCount][idCount.length -1] != undefined){
             let idLast = [...idCount][idCount.length -1].textContent;
             id = parseInt(idLast)+1;
 
@@ -94,7 +83,7 @@ if (idCount){
         const day = dateObj.getDate();
         const month = dateObj.getMonth();
         const year = dateObj.getFullYear();
-        const dateString = `${day}/${month}/${year}`
+        const dateString = `${year}-${month}-${day}`
 
         const receiverName = formOne.receiver_name.value;
         const destinationAddress = formOne.destination_address.value;
@@ -139,24 +128,32 @@ if (idCount){
         const upDestnAddress= formTwo.destination_address.value;
         const ordId= formTwo.id.value;
         fetch('/update_destination',{
-                        method:"POST",
+                        method:"PUT",
                         headers:{
                             "Content-Type":"application/json"
                         },
                         body:JSON.stringify({upDestnAddress, ordId})
         }).then((result)=>{
             console.log(result)
+
+        const idCount = document.querySelectorAll('.table-data p.id a.id-ach');
+            [...idCount].forEach((idCt)=>{
+                if(idCt.textContent==ordId){
+                   idCt.parentNode.parentNode.children[2].textContent=upDestnAddress; 
+                   formTwo.destination_address.value="";
+                   formTwo.id.value="";
+                }
+            })
+        })
+    
+
+
+
+
+
         });
 
-        [...idCount].forEach((idCt)=>{
-            if(idCt.textContent==ordId){
-               idCt.parentNode.children[2].textContent=upDestnAddress; 
-               formTwo.destination_address.value="";
-               formTwo.id.value="";
-            }
-        })
-    })
-
+        
 
 
     function createOrder (id,name,destination,pickup,mobile,wrtDate){
@@ -164,8 +161,22 @@ if (idCount){
         div.setAttribute('class','table-data');
 
         const idParagraph = document.createElement('p');
-        idParagraph.setAttribute('class','id')
-        idParagraph.textContent=id;
+        idParagraph.setAttribute('class','id');
+        idParagraph.setAttribute('title','CLICK TO VIEW ORDER LOCATION IN MAP');
+            const idAnchor = document.createElement('a');
+            idAnchor.setAttribute('class','id-ach');
+            idAnchor.setAttribute('href','./map.html');
+                idAnchor.addEventListener('click',(e)=>{
+                        e.preventDefault();
+
+                    window.location.replace('./map.html?id='+ id)
+                });
+
+
+
+            idAnchor.textContent=id;
+            idParagraph.appendChild(idAnchor);
+        
         div.appendChild(idParagraph);
 
         const recieverNameParagraph = document.createElement('p');
@@ -205,11 +216,56 @@ if (idCount){
 
         const deleteParagraph = document.createElement('p');
         deleteParagraph.setAttribute('class','delete')
+        deleteParagraph.setAttribute('title','CLICK TO DELETE ORDER')
         deleteParagraph.classList.add(id.toString())
+        
         deleteParagraph.textContent="x";
         div.appendChild(deleteParagraph);
+        deleteParagraph.addEventListener('click',(e)=>{
+
+        const result  = window.confirm(`ARE YOU SURE ?, YOU WANT TO DELETE ORDER ${id}`)
+            if(result == true){
+    const del =  e.target.classList.value.replace(/delete /g, '');
+
+
+        fetch('/delete_order/'+del,{
+                        method:"DELETE"
+                            }).then((response)=>{
+            console.log(response)
+        });
+    e.target.parentNode.parentNode.removeChild(e.target.parentNode);
+    
+            }else{
+
+                return
+            }
+    
+        })
+
+
 
         const orderList = document.querySelector('div.rap');
         orderList.appendChild(div);
+
+        
         
     }
+
+
+fetch('/order').then((res)=>{
+                    return res.json();
+                }).then((result)=>{
+                result.forEach((order)=>{
+                    const {order_id,receiver_name,destination_address,pickup_address,receiver_phone_no,order_date}= order;
+                   const ordD =order_date.split('T')[0]
+createOrder (order_id,receiver_name,destination_address,pickup_address,receiver_phone_no,ordD);
+
+
+                    
+                } );
+
+                })
+
+
+                
+        });

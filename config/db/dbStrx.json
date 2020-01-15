@@ -22,8 +22,8 @@
            "pickUpAddress": "pickUpAddress",
 
            "receiverPhoneNumber":"receiverPhoneNumber",
-           "date":"db.Timestamp.fromDate(new Date(Date.now))"
-
+           "date":"db.Timestamp.fromDate(new Date(Date.now))",
+           "status":"status"
         }
     ]
 

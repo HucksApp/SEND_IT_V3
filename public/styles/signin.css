@@ -217,6 +217,15 @@ button:hover , a:hover{
 
 }
 
+
+.table-data p.id{
+        color:#00f;
+}
+    
+.table-data p.id:hover{
+        cursor: pointer;
+    }
+
 @media Screen and (max-width:465px){
 
     form button{
@@ -248,11 +257,6 @@ button:hover , a:hover{
     
 }
 
-
-@media screen and (max-width: 465px){
-    .table-data{
-        border: solid thin #f0f0f0;
-    }
 
         
     

@@ -1,18 +1,6 @@
 const  router = require('express').Router();
 const db = require('../config/db/db.js');
 const bodyParser= require('body-parser');
-const fs = require('fs')
-
-
-
-//components
-const accountComponent = require('./components/accountComp');
-const signinComponent = require('./components/signinComp');
-const orderComponent = require('./components/orderComp');
-const homeComponent = require('./components/homeComp');
-const adminComponent = require('./components/adminComp');
-const mapComponent =    require('./components/mapComp');
-
 
 
 
@@ -21,54 +9,41 @@ const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
 
 
+
+
+// END SESSION 
 router.get('/logout', (req, res)=>{
     req.session = null;
-    res.status(200).redirect('/');
+    res.json({message:"session ended"});
 });
 
 
-router.get('/',(req, res)=>{
-    
-    res.sendFile(__dirname+'/pages/index.html');
-}
-);
 
-router.get('/login', (req, res)=>{
-   res.sendFile(__dirname+'/pages/user_signin.html');
-});
 
-router.get('/signup', (req, res)=>{
-    res.sendFile(__dirname+'/pages/user_signup.html');
-});
 
+// GET USER ORDERS
 router.get('/order', (req, res)=>{
-    if(req.session.populated){
-                const {id}=req.session;
+    if(req.session.populated ){
+        console.log('here')
+                const {id}=req.session
             db.query('SELECT * FROM orders WHERE user_email = $1',[id],(err, result)=>{
                 if (err){
                     console.log(err)
                 };
-                res.json(result.rows)
+                res.json(result.rows);
             });
 }else{
-    res.status(302).redirect('/login')
+    res.sendStatus(302);
 }
 
 });
 
-router.get('/home',(req, res )=>{
-    if(req.session.populated){
-        const {id}= req.session;
-        db.query('SELECT username FROM users WHERE email= $1',[id],(err,result)=>{
-            res.json(result.rows)
-        });
-    }else{
-        res.status(302).redirect('/')
-    }
-})
 
 
 
+
+
+//GET USERS
 router.get('/account',(req,res)=>{
     if (req.session.populated){
         const {id}= req.session;
@@ -79,24 +54,92 @@ router.get('/account',(req,res)=>{
             res.json(result.rows)
         });
     }else{
-        res.status(302).redirect('/login')
+        res.sendStatus(412)
     }
 });
 
 
-router.post('/admin',urlencodedParser,(req, res)=>{
 
-fs.readFile('../config/keys/.pk/Amin.json','utf-8', (err, data)=>{
-if (err){
-        console.log(err);
-}else{
- const jsonData = JSON.parse(data);
- const adminEmail = jsonData.ADMIN.email.type;
- const adminPassword = jsonData.ADMIN.password.type;
+
+
+//UPDATE DESTINATION
+router.put('/update_destination',jsonParser,(req,res)=>{
+    if(req.session.populated){
+        const {id}= req.session;
+        const {ordId, upDestnAddress }=req.body;
+        db.query('UPDATE orders SET destination_address= $1 WHERE user_email = $2  AND order_id = $3',
+                        [upDestnAddress,id,parseInt(ordId)],(err ,result)=>{
+                            if (err){
+                                console.log(err);
+                            }
+                            res.send('updated destn');
+                        })
+    }else{
+        res.status(412).send('YOU ARE NOT LOGGED IN')
+    }
+});
+
+
+
+
+
+
+//GET ORDER LOCATION
+router.get('/map',(req,res)=>{
+    if(req.session.populated ){
+        const {id}= req.session;
+        const ord=req.query.ordCk;
+       db.query('SELECT pickup_address, c_location FROM orders WHERE user_email=$1 AND order_id = $2',
+                    [id,parseInt(ord)],(err, result)=>{
+                        if(err){
+                            console.log(err)
+                        };
+                        res.json(result.rows);
+                    })
+
+    }else{
+        res.status(412).send('YOU ARE NOT LOGGED IN')
+    }
+
+});
+
+
+
+
+
+// VERIFY ADMIN ***** ADMIN
+
+router.post('/admin',jsonParser,(req, res)=>{
+    const {password, email} = req.body;
+    db.query('SELECT * FROM admins WHERE email = $1 AND password = $2',
+                [email, password],(err, result)=>{
+                    if (err){
+                        console.log(err);
+                    };
+                    if (result.rows.length == 0){
+                        res.status(302).json({message: 'ADMIN CREDENIALS IS IN VALID',valid:false});
+                    }else if (result.rows.length != 0){
+                        req.session = {admin: result.rows[0].email}
+                            res.status(200).json({message: 'ADMIN SESSION VALID', valid: true})
+
+        
+
+
+
+                    }
+                    
+                })
+
+            }
+            );
+
+
+//GET ALL ORDERS ***** ADMIN
+
+router.get('/admin_orders',(req, res)=>{
+
+ if(req.session.admin ){
  
- if(req.body.email==adminEmail && req.body.password == adminPassword){
-    req.session={id:  adminEmail};
-
             db.query('SELECT * FROM orders',(err, result)=>{
                 if(err){
                     console.log(err);
@@ -105,89 +148,48 @@ if (err){
             });
  }else{
 
-            const func = "INVALID ADMIN CREDENCIALS !!!!!!!!!!!" 
-            res.send(signinComponent(func));  
+            res.status(403).json({message: "RESTRICTED", valid: false}) 
  }
     
-}
-})
 
 })
 
 
-router.post('/update_destination',jsonParser,(req,res)=>{
-    if(req.session.populated){
-        db.collection('app-users').doc(req.session.id).get()
-        .then((doc)=>{
-            if(doc.exists){
-            const ordId =(doc.data().orders).map((ord)=>{
-                if(ord.id == parseInt(req.body.ordId)){
-                    ord.destinationAddress = req.body.upDestnAddress;
-                    return ord
-                }else{
-                    return ord
-                }
-            });
-        db.collection('app-users').doc(req.session.id).update({
-                                                        orders: ordId
-        });
-        
-            }
-        })
-    }else{
-        res.status(302).redirect('/login')
-    }
-});
 
-router.post('/update_location',jsonParser,(req,res)=>{
-    if (req.session.populated){
-        db.collection('app-users').doc(req.body.userUpdateId).get()
-                .then((doc)=>{
-                        if(doc.exists){
-                           const newList = doc.data().orders.map((order)=>{
-                                if(order.id== parseInt(req.body.toUpdateId)){
-                                        order.location = req.body.toUpdateLotn;
-                                        return order;
-                                }else{
-                                    return order;
-                                }
-                            });
-                 db.collection('app-users').doc(req.body.userUpdateId).update({orders: newList});
-                        }else{
-                            res.sendStatus(404);
-                        }
-                })
+
+
+
+
+
+
+
+
+
+
+//UPDATE LOCATION**** ADMIN
+router.put('/update_location',jsonParser,(req,res)=>{
+    if (req.session.populated ){
+        const {userUpdateId,toUpdateLotn,toUpdateId }= req.body;
+
+        db.query('UPDATE orders SET c_location = $1 WHERE user_email =$2 AND order_id= $3',
+                    [toUpdateLotn,userUpdateId,parseInt(toUpdateId) ],(err, result)=>{
+                        if (err){
+                            console.log(err);
+                        }  
+                        res.send('updated location');
+                    })
 
     }else{
-        res.status(302).redirect('/login')
+        res.sendStatus(412)
     }
     
 });
 
-router.get('/map',(req,res)=>{
-    if(req.session.populated){
-        db.collection('app-users').doc(req.session.id).get()
-                    .then((doc)=>{
-                        if(doc.exists){
-                            console.log(req.query.ordCk)
-                            const orderLookUP =doc.data().orders.filter(order=>order.id == req.query.ordCk );
-                            const pickup=orderLookUP[0].pickupAddress;
-                            const presentLoc = orderLookUP[0].location;
-                                console.log(pickup,presentLoc )
-                        res.send(mapComponent(presentLoc,pickup))
-                        }
-
-                    });
-        
-
-    }else{
-        res.status(302).redirect('/login'); 
-    }
-
-});
 
 
-router.post('/update_status',jsonParser,(req,res)=>{
+
+//UPDATE STATUS *****ADMIN
+router.put('/update_status',jsonParser,(req,res)=>{
     const {toUpdateId, userUpdateId, toUpdateStatus}= req.body;
     if (req.session.populated){
         db.query('UPDATE orders SET status = $1 WHERE user_email =$2 AND order_id = $3',
@@ -199,19 +201,18 @@ router.post('/update_status',jsonParser,(req,res)=>{
                             });
         
     }else{
-        res.status(302).redirect('/login')
+        res.sendStatus(405);
     }
     
 });
 
 
-
-router.post('/delete_order',jsonParser,(req,res)=>{
-
-    const del = parseInt(req.body.del);
-    /*const {id}= req.session;*/
-    const id = req.body.email;
-    if(req.session.populated || req.body.email){
+//DELETE ORDER
+router.delete('/delete_order/:del',jsonParser,(req,res)=>{
+    console.log(req.params.del)
+    const del = parseInt(req.params.del);
+    const {id}= req.session;
+    if(req.session.populated ){
         db.query('DELETE FROM orders WHERE user_email = $1 AND order_id = $2',[id,del],(err, result)=>{
             if (err){
                 console.log(err)
@@ -221,12 +222,12 @@ router.post('/delete_order',jsonParser,(req,res)=>{
         });
         
     }else{
-        res.status(302).redirect('/login')
+        res.status(405).send('YOU ARE NOT LOGGED IN')
     }
 });
 
 
-
+// ADD NEW ORDER
 router.post('/new_order',jsonParser,(req,res)=>{
     if(req.session.populated ){  
         const { receiverName,
@@ -236,7 +237,6 @@ router.post('/new_order',jsonParser,(req,res)=>{
        } = req.body;
 
        const {id}= req.session;
-
 db.query('SELECT MAX(order_id) FROM orders WHERE user_email=$1',[id],(err, result)=>{
 
         let order_id_Nt;
@@ -250,7 +250,6 @@ db.query('SELECT MAX(order_id) FROM orders WHERE user_email=$1',[id],(err, resul
     }else if(result.rows[0].max == null){
         order_id_Nt = 1;
     };
-    
 
 db.query('INSERT INTO orders(user_email, order_id, receiver_name,destination_address,pickup_address,receiver_phone_no) VALUES($1,$2,$3,$4,$5,$6)',
             [id,order_id_Nt,receiverName,destinationAddress,pickupAddress,receiverPhoneNumber],
@@ -287,7 +286,7 @@ db.query('INSERT INTO orders(user_email, order_id, receiver_name,destination_add
 
 
     }else{
-        res.status(404).redirect('/');
+        res.status(406)
     }
 
 });
@@ -295,8 +294,9 @@ db.query('INSERT INTO orders(user_email, order_id, receiver_name,destination_add
 
 
 
+//UPDATE USER INFORMATION
 
-router.post('/update_profile',jsonParser,(req,res)=>{
+router.put('/update_profile',jsonParser,(req,res)=>{
     if(req.session.populated){
         const {keyToValue, newVal} = req.body;
         const {id}= req.session ;
@@ -320,19 +320,19 @@ router.post('/update_profile',jsonParser,(req,res)=>{
                 if (err){console.log(err)}
                 res.send('modified')
             });
-        }
-      
-
+        }  
     }else{
-        res.status(302).redirect('/login');
+        res.sendStatus(406)
     }
   
 })
 
 
 
+//VERIFY USER
 
-router.post('/old_user',urlencodedParser, (req, res)=>{
+router.post('/old_user',jsonParser, (req, res)=>{
+    console.log('JUST HERE')
     if(req.body.email){
         const {email, password} = req.body;
         db.query('SELECT * FROM users WHERE email = $1 AND user_password = $2',[email,password],(err, result)=>{
@@ -340,11 +340,11 @@ router.post('/old_user',urlencodedParser, (req, res)=>{
             const {rows} = result;
             if(rows.length != 0){
                 req.session={id: rows[0].email};
-                res.status(200).json(rows[0]);
+                    message="SESSION CREATED"
+                res.status(200).json({message, valid:true})
             }else if(rows.length == 0){
-                res.status(404).json({message: "INVALID CREDENTIALS"})
-            }else{
-                return
+                    message="INVALID CREDENTIALS !!!"
+                res.status(404).json({message, valid: false})
             }   
         })
                 }
@@ -356,22 +356,23 @@ router.post('/old_user',urlencodedParser, (req, res)=>{
 
 
 
+//ADD NEW USER
 
-
-
-router.post('/new_user',urlencodedParser,(req,res)=>{
+router.post('/new_user',jsonParser,(req,res)=>{
  const {username, phoneNumber, houseAddress,password,email}  = req.body;  
     db.query('SELECT * FROM users WHERE email=$1',[email],(err,result)=>{
                 if(err){console.log(err)};
                  const {rows}= result;
             if (rows.length != 0){
-                    res.send('you have an account')
+                            message ="YOU HAVE AN ACCOUNT ALREADY!!!";
+                    res.status(302).json({message, valid:false})
             }else if (rows.length == 0){
                     db.query('SELECT * FROM users WHERE phone_number=$1',[phoneNumber],(err, result)=>{
                         if (err){console.log(err)};
                         const {rows}= result;
                         if (rows.length != 0) {
-                            res.send('YOUR PHONE NUMBER IS  REGISTERED TO ANOTHER PROFILE')
+                                message ='YOUR PHONE NUMBER IS  REGISTERED TO ANOTHER PROFILE!!!'
+                            res.status(302).json({message, valid:false})
                         }   if (rows.length == 0){
                                 req.session = {id: email};
                             db.query('INSERT INTO users(email,phone_number,username,user_password,address) VALUES($1,$2,$3,$4,$5)',
@@ -380,7 +381,8 @@ router.post('/new_user',urlencodedParser,(req,res)=>{
                                                      if(err){
                                                 console.log(err)
                                          }
-                                res.send(result.insertId)
+                                         message="ORDER ADDED"
+                                res.status(200).json({message, valid:true})
                             });
                             
                         }

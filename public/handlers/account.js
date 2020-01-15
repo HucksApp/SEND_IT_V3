@@ -2,6 +2,7 @@ const edits = document.getElementsByClassName('edit-btn');
 const inputs= document.getElementsByTagName('input');
 const  containers = document.querySelectorAll('span.value');
 const changes = document.getElementsByClassName('change');
+const logout = document.getElementById('logout');
 
 
 
@@ -37,7 +38,7 @@ change.addEventListener('click',(e)=>{
             let data = {newVal:input.value, keyToValue:input.id};
             console.log(data);
             fetch('/update_profile',{
-                    method:"POST",
+                    method:"PUT",
                     headers:{
                         "Content-Type":"application/json",
                         "Accept":"application/json, text/plain, */*"
@@ -85,4 +86,29 @@ function togBar( identifier, inputs){
     })
 
 }
+
+
+
+
+logout.addEventListener('click',(e)=>{
+    e.preventDefault();
+    const chk= window.confirm('ARE YOU SURE ? .YOU WANT TO LOG OUT');
+    if(chk == false){
+        return
+    }else if (chk == true){
+
+
+        fetch('/logout').then((res)=>{
+        return res.json();
+    }).then((message)=>{
+        console.log(message.message);
+        window.location.replace('./index.html')
+
+    })
+
+    }
+
+    
+
+})
 
